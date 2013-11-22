@@ -83,7 +83,8 @@ int main(int argc, char * argv[]) {
     glutInit(&argc, argv);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(800, 600);
-    glutInitContextVersion(3, 0);
+	//glutInitContextVersion(3, 0);
+    glutInitContextVersion(3, 3);
     glutInitContextProfile(GLUT_CORE_PROFILE);
     glutCreateWindow("465 Warbird Project");
 

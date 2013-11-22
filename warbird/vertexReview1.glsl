@@ -1,4 +1,4 @@
-#version 130
+//#version 130
 /*
 vertexReview1.glsl
 
@@ -10,7 +10,7 @@ Mike Barnes
 8/19/2013
 */
 
-//# version 330 core
+# version 330 core
         
 //uniform float eyePosition;
 

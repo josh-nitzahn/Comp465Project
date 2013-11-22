@@ -1,4 +1,4 @@
-#version 130
+//#version 130
 /*
 fragmentReview1.glsl
 
@@ -14,7 +14,7 @@ Mike Barnes
 10/9/2013
 */
 
-//# version 330 core
+# version 330 core
         
 in  vec4 vsColor;
 out vec4 color;

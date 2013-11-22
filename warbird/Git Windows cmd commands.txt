@@ -1,0 +1,36 @@
+*** GIT WINDOWS CMD COMMANDS ***
+
+#0a: Install git (if you already have, skip this step)
+~ Go to http://msysgit.github.io/
+~ Click "Downloads"
+~ Download the latest version
+~ Once it downloads, run the installer
+~ Install using ALL the default options, EXCEPT when you reach a specific page...
+~ When you see "Adjusting your PATH environment, make sure to choose "Run Git from the Windows Command Prompt"
+
+#0b: Open up the Command Prompt
+~ Navigate to the Start Menu/Screen and type in "cmd.exe"
+
+#0c: Create the directory (If you already have, skip this step) Here's an example directory:
+* md Desktop\Comp465Project
+
+#1: Navigate to the folder location. Here's an example directory:
+* cd Desktop\Comp465Project
+
+#2: Initialize the folder to be a git repository
+* git init
+
+#3: Clone the repository
+* git remote add origin https://github.com/josh-nitzahn/Comp465Project.git
+* git pull origin master
+
+#4: Before working, ALWAYS pull from the repository for the latest files
+* git remote add origin https://github.com/josh-nitzahn/Comp465Project.git
+* git pull origin master
+
+#5: Once an edit has been made, push your files to the repository
+* git add .
+* git commit -m "Type your edit's description into this string"
+* git push origin master
+* [your-github-username] (Type this when prompted to enter your username)
+* [your-github-password] (Type this when prompted to enter your password)
