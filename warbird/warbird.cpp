@@ -25,6 +25,7 @@ warbird.cpp
 const int nModels = 2;
 int currentCam = -1; //front view
 bool gravityFlag = true;
+int warp = 0;
 Object3D * bodies[BODIES] = {NULL};
 Object3D * Ruber = NULL;
 Object3D * Unum = NULL;
@@ -78,6 +79,7 @@ void animate(int i);
 void keyboard(unsigned char key, int x, int y);
 void keyboardSpec(int key, int x, int y);
 bool farEnough(glm::vec3 rPos, float margin);
+void warpCode();
 
 void init();
 
@@ -350,7 +352,7 @@ void keyboard(unsigned char key, int x, int y) {
 			printf("gravity has been toggled.\n");
 			break;
 	case 'w': case 'W':
-			//warp code goes here
+			warpCode();
 			break;
     }
 }
@@ -420,4 +422,13 @@ bool farEnough(glm::vec3 rPos, float margin)
 	{
 		return true;
 	}
+}
+
+//Warps to a given planet in the order of Unum, Duo, Primus, Secundus
+void warpCode()
+{
+	Object3D * planetArray[4] = {Unum, Duo, Primus, Secundus};
+	glm::vec3 position = glm::vec3(planetArray[warp]->getModelMatrix()[3]);
+	warbird->setTranslation(position);
+	warp = (warp + 1) % 4;
 }
