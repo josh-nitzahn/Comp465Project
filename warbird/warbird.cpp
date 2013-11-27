@@ -5,6 +5,7 @@ warbird.cpp
 # define __Windows__
 
 # include "..\includes465\include465.h"
+# include "..\includes465\glmUtils465.hpp"
 # define __INCLUDES465__
 
 # include "3dobject.hpp"
@@ -23,6 +24,7 @@ warbird.cpp
         
 const int nModels = 2;
 int currentCam = -1; //front view
+bool gravityFlag = true;
 Object3D * bodies[BODIES] = {NULL};
 Object3D * Ruber = NULL;
 Object3D * Unum = NULL;
@@ -75,6 +77,7 @@ void reshape(int width, int height);
 void animate(int i);
 void keyboard(unsigned char key, int x, int y);
 void keyboardSpec(int key, int x, int y);
+bool farEnough(glm::vec3 rPos, float margin);
 
 void init();
 
@@ -112,7 +115,7 @@ int main(int argc, char * argv[]) {
 
     printf("End of program.\n");
     return 0;
-    }
+}
 
 void init() {
     shaderProgram = loadShaders(vertexShaderFile, fragmentShaderFile);
@@ -205,7 +208,7 @@ void init() {
     
     glEnable(GL_DEPTH_TEST);
     glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
-    }
+}
     
 void display() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -236,77 +239,98 @@ void display() {
     glDrawArrays(GL_TRIANGLES, 0, nVertices[1]);
     
     glutSwapBuffers();
-    }
+}
     
 void reshape(int width, int height) {
     glViewport(0, 0, width, height);
     projectionMatrix = glm::perspective(glm::radians(45.0f), (GLfloat) width /
         (GLfloat) height, 1.0f, 100000.0f);
-    }
+}
     
 void animate(int i) {
     
-    glm::vec3 temp;
-    float dist;
-    
+    glm::vec3 direction, pull, rPosition;
+    float rDistance, gConstant;
+	
     glutTimerFunc(40, animate, 1);
-    bodies[0]->update();
+	
+    bodies[0]->update(); //This updates the planets
+	
+	//Default direction/pull values
+	direction = glm::vec3(0.0f, 0.0f, 0.0f);
+	pull = glm::vec3(0.0f, 0.0f, 0.0f);
+	
+	if (gravityFlag)
+	{
+        rPosition = glm::vec3(warbird->getModelMatrix()[3]);
+		if(farEnough(rPosition, 0.02f))
+		{
+			rDistance = glm::dot(rPosition, rPosition);
+			gConstant = GRAVITY / rDistance;
+			pull = glm::normalize(rPosition) * -1.0f * gConstant;
+		}
+	}
     
+	//The rotation needs to be fixed
     switch(warMod) {
     case forward:
-        warbird->move(glm::vec3(0.0f, 0.0f, 10.0f));
+		direction = glm::vec3(0.0f, 0.0f, 10.0f);
         break;
     case backward:
-        warbird->move(glm::vec3(0.0f, 0.0f, -10.0f));
+        direction = glm::vec3(0.0f, 0.0f, -10.0f);
         break;
     case left:
         warbird->yaw(0.02f);
-        warCam->setOrbitAngle(0.02f);
+        //warCam->setOrbitAxis(glm::vec3(0.0f, 1.0f, 0.0f)); //just for safety
+        //warCam->setOrbitAngle(0.02f);
         break;
     case right:
         warbird->yaw(-0.02f);
-        warCam->setOrbitAngle(-0.02f);
+        //warCam->setOrbitAxis(glm::vec3(0.0f, 1.0f, 0.0f)); //just for safety
+        //warCam->setOrbitAngle(-0.02f);
         break;
     case up:
         warbird->pitch(-0.02f);
-        warCam->setOrbitAxis(glm::vec3(1.0f, 0.0f, 0.0f));
-        warCam->setOrbitAngle(-0.02f);
+        //warCam->setOrbitAxis(glm::vec3(1.0f, 0.0f, 0.0f));
+        //warCam->setOrbitAngle(-0.02f);
         break;
     case down:
         warbird->pitch(0.02f);
-        warCam->setOrbitAxis(glm::vec3(1.0f, 0.0f, 0.0f));
-        warCam->setOrbitAngle(0.02f);
+        //warCam->setOrbitAxis(glm::vec3(1.0f, 0.0f, 0.0f));
+        //warCam->setOrbitAngle(0.02f);
         break;
     case rollR:
         warbird->roll(-0.02f);
-        warCam->setOrbitAxis(glm::vec3(0.0f, 0.0f, 1.0f));
-        warCam->setOrbitAngle(-0.02f);
+        //warCam->setOrbitAxis(glm::vec3(0.0f, 0.0f, 1.0f));
+        //warCam->setOrbitAngle(-0.02f);
         break;
     case rollL:
         warbird->roll(0.02f);
-        warCam->setOrbitAxis(glm::vec3(0.0f, 0.0f, 1.0f));
-        warCam->setOrbitAngle(0.02f);
+        //warCam->setOrbitAxis(glm::vec3(0.0f, 0.0f, 1.0f));
+        //warCam->setOrbitAngle(0.02f);
         break;
     }
-    
+    //Move the warbird based on direction and pull
+	direction = direction + pull;
+	warbird->move(direction);
+	
+    //The update applies to both warbird and warcam
     warbird->update();
+	
+    //Reset the camera and warmod after the update
     warCam->setOrbitAxis(glm::vec3(0.0f, 1.0f, 0.0f));
     warCam->setOrbitAngle(0);
-        
-    temp = glm::vec3(warbird->getModelMatrix()[3]);
-    dist = glm::dot(temp, temp);
-    warbird->move(GRAVITY / dist * (temp / glm::sqrt(dist)));
-    
     warMod = none;
     
-    
-    
+    //???
     if(currentCam == -1)
         viewMatrix = frontCamMat;
     else
         viewMatrix = cameras[currentCam]->getView();
+		
+	//The last line - redisplay the image
     glutPostRedisplay();
-    }
+}
 
 void keyboard(unsigned char key, int x, int y) {
     switch (key) {
@@ -320,6 +344,14 @@ void keyboard(unsigned char key, int x, int y) {
             currentCam = ( currentCam == 2 ) ? 3 : 2;
             printf("camera changed.\n");
             break;
+			
+	case 'g' : case 'G':
+			gravityFlag = !gravityFlag;
+			printf("gravity has been toggled.\n");
+			break;
+	case 'w': case 'W':
+			//warp code goes here
+			break;
     }
 }
 
@@ -353,4 +385,39 @@ void keyboardSpec(int key, int x, int y) {
             warMod = right;
         break;
     }
+}
+
+//Returns a boolean to determine if the vec3 is larger in any dimension from the specified margin
+bool farEnough(glm::vec3 rPos, float margin)
+{
+	//Error checking
+	if (margin == 0)
+	{
+		margin = 0.01f;
+	}
+	else if (margin < 0)
+	{
+		margin *= -1;
+	}
+	
+	float x = rPos[0];
+	float y = rPos[1];
+	float z = rPos[2];
+	
+	if (x <= margin && x >= -margin)
+	{
+		return false;
+	}
+	else if (y <= margin && y >= -margin)
+	{
+		return false;
+	}
+	else if (z <= margin && z >= -margin)
+	{
+		return false;
+	}
+	else
+	{
+		return true;
+	}
 }
