@@ -192,7 +192,7 @@ void init() {
     
     warCam = warbird->getSatellite(0);
     warCam->setTranslation(glm::vec3(0.0f, 500.0f, -1000.0f));
-    warCam->setCameraOffset(glm::vec3(0.0f, 250.0f, 0.0f));
+    warCam->setCameraOffset(glm::vec3(0.0f, 0.0f, 0.0f)); //y -> 250
     
     bodies[0] = Ruber;
     bodies[1] = Unum;
@@ -251,9 +251,7 @@ void reshape(int width, int height) {
     
 void animate(int i) {
 //TODO:
-//get rid of any ship-orbit movement
 //fix the gravity/rotation problem
-//fix the x-rotation & z-rotation. y-rotation works fine
 //fix the warp/rotation problem
     glutTimerFunc(40, animate, 1);
 	
@@ -263,6 +261,7 @@ void animate(int i) {
 	glm::vec3 direction = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 pull = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 rPosition = glm::vec3(warbird->getModelMatrix()[3]);
+	showMat4("warbird", warbird->getModelMatrix());
 	float rDistance = glm::dot(rPosition, rPosition);
 	float gConstant = GRAVITY / rDistance;
 	
@@ -292,22 +291,22 @@ void animate(int i) {
         warCam->setOrbitAngle(-0.02f);
         break;
     case up:
-        //warbird->pitch(-0.02f);
+        warbird->pitch(-0.02f);
         warCam->setOrbitAxis(glm::vec3(1.0f, 0.0f, 0.0f));
         warCam->setOrbitAngle(-0.02f);
         break;
     case down:
-        //warbird->pitch(0.02f);
+        warbird->pitch(0.02f);
         warCam->setOrbitAxis(glm::vec3(1.0f, 0.0f, 0.0f));
         warCam->setOrbitAngle(0.02f);
         break;
     case rollR:
-        //warbird->roll(-0.02f);
+        warbird->roll(-0.02f);
         warCam->setOrbitAxis(glm::vec3(0.0f, 0.0f, 1.0f));
         warCam->setOrbitAngle(-0.02f);
         break;
     case rollL:
-        //warbird->roll(0.02f);
+        warbird->roll(0.02f);
         warCam->setOrbitAxis(glm::vec3(0.0f, 0.0f, 1.0f));
         warCam->setOrbitAngle(0.02f);
         break;
@@ -315,8 +314,9 @@ void animate(int i) {
     //Move the warbird based on direction and pull
 	printf("position: %8.3f %8.3f %8.3f, ", rPosition[0], rPosition[1], rPosition[2]); //debug
 	printf("pull: %8.3f %8.3f %8.3f\n", pull[0], pull[1], pull[2]); //debug
-	direction = direction + pull;
+	showVec3("direction", direction);
 	warbird->move(direction);
+	warbird->setOrbitPos(pull);
 	
     //The update applies to both warbird and warcam
     warbird->update();
@@ -356,8 +356,8 @@ void keyboard(unsigned char key, int x, int y) {
 			
 	case 'w': case 'W':
 			Object3D * planetArray[4] = {Unum, Duo, Primus, Secundus};
-			glm::vec3 position = glm::vec3(planetArray[warp]->getModelMatrix()[3]);
-			warbird->setTranslation(position);
+			glm::mat4 mod = planetArray[warp]->getModelMatrix();
+			warbird->reset(mod);
 			printf("warped to planet %d.\n", warp);
 			warp = (warp + 1) % 4;
 			break;

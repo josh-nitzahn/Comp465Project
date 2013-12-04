@@ -24,6 +24,7 @@ class Object3D {
     void setCameraOffset(glm::vec3 offset);
     void setTranslation(glm::vec3 pos);
     void setCamera(bool cam);
+	void reset(glm::mat4 mod);
     void makeSatellites(unsigned number);
     void move(glm::vec3 amount);
     void yaw(float radians);
@@ -164,6 +165,17 @@ void Object3D::setTranslation(glm::vec3 pos) {
     satPos = distance = pos;
     }
     
+void Object3D::reset(glm::mat4 mod) {
+	rotateAngle = 0;
+	orbitAngle = 0;
+    orbitPos = glm::vec3(0.0f);
+	rotateAxis = orbitAxis = glm::vec3(0.0f, 1.0f, 0.0f);
+    rotateMat = glm::mat4(glm::mat3(mod));
+	orbitMat = glm::mat4(1.0f);
+	if(visible)
+		baseTranslate = glm::translate(glm::mat4(1.0f),glm::vec3(mod[3]));
+	}
+	
 void Object3D::move(glm::vec3 amount) {
     rotateMat = glm::translate(rotateMat, amount);
     }
