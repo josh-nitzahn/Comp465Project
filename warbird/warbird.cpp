@@ -25,7 +25,7 @@ warbird.cpp
 const int nModels = 2;
 int currentCam = -1; //front view
 bool gravityFlag = true;
-int warp = 0;
+int warp = 2;
 Object3D * bodies[BODIES] = {NULL};
 Object3D * Ruber = NULL;
 Object3D * Unum = NULL;
@@ -89,7 +89,7 @@ int main(int argc, char * argv[]) {
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(800, 600);
 	//glutInitContextVersion(3, 0);
-    glutInitContextVersion(3, 3);
+    glutInitContextVersion(3, 0);
     glutInitContextProfile(GLUT_CORE_PROFILE);
     glutCreateWindow("465 Warbird Project");
 
@@ -316,8 +316,8 @@ void animate(int i) {
 	printf("pull: %8.3f %8.3f %8.3f\n", pull[0], pull[1], pull[2]); //debug
 	showVec3("direction", direction);
 	warbird->move(direction);
-	warbird->setOrbitPos(pull);
-	
+	warbird->move2(pull);
+	warbird->showOrbit();
     //The update applies to both warbird and warcam
     warbird->update();
 	
@@ -355,11 +355,16 @@ void keyboard(unsigned char key, int x, int y) {
 			break;
 			
 	case 'w': case 'W':
-			Object3D * planetArray[4] = {Unum, Duo, Primus, Secundus};
-			glm::mat4 mod = planetArray[warp]->getModelMatrix();
+			glm::mat4 mod = cameras[warp]->getRotateMatrix();
+			mod = glm::translate(mod, cameras[warp]->getPos());
+			showVec4("warp position", mod[3]);
 			warbird->reset(mod);
+			warCam->reset(mod);
+			warbird->pitch(PI/2);
+			warCam->setOrbitAxis(glm::vec3(1.0f, 0.0f, 0.0f));
+			warCam->setOrbitAngle(PI/2);
 			printf("warped to planet %d.\n", warp);
-			warp = (warp + 1) % 4;
+			warp = (warp == 2) ? 3 : 2;
 			break;
     }
 }

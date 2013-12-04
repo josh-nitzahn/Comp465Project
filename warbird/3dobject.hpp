@@ -15,7 +15,9 @@ class Object3D {
     void update();
     unsigned getSatellites();
     glm::mat4 getModelMatrix();
+	glm::mat4 getRotateMatrix();
     glm::mat4 getView();
+	glm::vec3 getPos();
     void setOrbit(glm::vec3 orbit, float angle);
     void setOrbitPos(glm::vec3 pos);
     void setOrbitAngle(float angle);
@@ -27,9 +29,12 @@ class Object3D {
 	void reset(glm::mat4 mod);
     void makeSatellites(unsigned number);
     void move(glm::vec3 amount);
+	void move2(glm::vec3 amount);
     void yaw(float radians);
     void pitch(float radians);
     void roll(float radians);
+	void showOrbit() {
+		showVec3("OrbitPos",orbitPos); }
     Object3D * getSatellite(unsigned number);
     ~Object3D();
 
@@ -66,7 +71,7 @@ Object3D::Object3D() : satellites(0), visible(false), satellites_p(NULL),
     rotateAxis = orbitAxis = glm::vec3(0.0f, 1.0f, 0.0f);
     cameraOffset = orbitPos = satPos = glm::vec3(0.0f);
     rotateMat = orbitMat = scaleMat = translationMat = glm::mat4(1.0f);
-    eye = glm::vec3(0.0f, 0.0f, 0.0f);
+	eye = glm::vec3(0.0f, 0.0f, 0.0f);
     at = glm::vec3(0.0f, 0.0f, -1.0f);
     up = glm::vec3(0.0f, 1.0f, 0.0f);
     }
@@ -116,6 +121,14 @@ unsigned Object3D::getSatellites() {
 glm::mat4 Object3D::getModelMatrix() {
     return modelMat;
     }
+
+glm::mat4 Object3D::getRotateMatrix() {
+		return rotateMat;
+	}
+	
+glm::vec3 Object3D::getPos() {
+	return glm::vec3(modelMat[3]);
+	}
 
 glm::mat4 Object3D::getView() {
     return viewMat;
@@ -173,12 +186,16 @@ void Object3D::reset(glm::mat4 mod) {
     rotateMat = glm::mat4(glm::mat3(mod));
 	orbitMat = glm::mat4(1.0f);
 	if(visible)
-		baseTranslate = glm::translate(glm::mat4(1.0f),glm::vec3(mod[3]));
+		setTranslation(glm::vec3(mod[3]));
 	}
 	
 void Object3D::move(glm::vec3 amount) {
     rotateMat = glm::translate(rotateMat, amount);
     }
+	
+void Object3D::move2(glm::vec3 amount) {
+	orbitPos += amount;
+	}
     
 void Object3D::yaw(float radians) {
     rotateMat = glm::rotate(rotateMat, radians, glm::vec3(0.0f, 1.0f, 0.0f));
