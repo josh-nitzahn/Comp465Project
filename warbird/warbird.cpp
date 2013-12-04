@@ -22,11 +22,13 @@ warbird.cpp
 # define BODIES 5
 # define GRAVITY 90000000
         
-const int nModels = 2;
+const int nModels = 4;
 int currentCam = -1; //front view
 bool gravityFlag = true;
 int warp = 2;
 Object3D * bodies[BODIES] = {NULL};
+Object3D * missiles[10] = {NULL};
+Object3D * launcher[2] = {NULL};
 Object3D * Ruber = NULL;
 Object3D * Unum = NULL;
 Object3D * Duo = NULL;
@@ -39,10 +41,10 @@ Object3D * UnumCam = NULL;
 Object3D * DuoCam = NULL;
 Object3D * warCam = NULL;
 
-char * modelFile[nModels] = {"planet.tri", "ship2.tri"};
+char * modelFile[nModels] = {"planet.tri", "ship2.tri", "missile.tri", "launcher.tri"};
 float modelBoundingRadius[nModels];
 float scaleValue[nModels];
-const GLuint nVertices[nModels] = {2867 * 3, 38138 * 3};
+const GLuint nVertices[nModels] = {2867 * 3, 38138 * 3, 96 * 3, 144 * 3};
 
 char * vertexShaderFile = "vertexReview1.glsl";
 char * fragmentShaderFile = "fragmentReview1.glsl";
@@ -89,7 +91,7 @@ int main(int argc, char * argv[]) {
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(800, 600);
 	//glutInitContextVersion(3, 0);
-    glutInitContextVersion(3, 0);
+    glutInitContextVersion(3, 3);
     glutInitContextProfile(GLUT_CORE_PROFILE);
     glutCreateWindow("465 Warbird Project");
 
@@ -205,6 +207,18 @@ void init() {
     
     cameras[2] = UnumCam;
     cameras[3] = DuoCam;
+	
+	//dummy missile setup
+	
+	missiles[0] = new Object3D;
+	missiles[0]->setTranslation(glm::vec3(0.0f, 2500.0f, 0.0f));
+	missiles[0]->setScale(glm::vec3(50.0f / modelBoundingRadius[2]));
+    missiles[0]->setCamera(false);
+	
+	launcher[0] = new Object3D;
+	launcher[0]->setTranslation(glm::vec3(0.0f, -2500.0f, 0.0f));
+	launcher[0]->setScale(glm::vec3(30.0f / modelBoundingRadius[3]));
+	launcher[0]->setCamera(false);
     
     viewMatrix = frontCamMat;
     
@@ -240,6 +254,30 @@ void display() {
     glEnableVertexAttribArray( vNormal[1] );
     glDrawArrays(GL_TRIANGLES, 0, nVertices[1]);
     
+	
+	modelMatrix = launcher[0]->getModelMatrix();
+	modelViewMatrix = viewMatrix * modelMatrix;
+	
+    glUniformMatrix4fv(modelview, 1, GL_FALSE, glm::value_ptr(modelViewMatrix));
+    glUniformMatrix4fv(project, 1, GL_FALSE, glm::value_ptr(projectionMatrix));
+    glBindVertexArray(VAO[3]);
+    glEnableVertexAttribArray( vPosition[3] );
+    glEnableVertexAttribArray( vColor[3] );
+    glEnableVertexAttribArray( vNormal[3] );
+    glDrawArrays(GL_TRIANGLES, 0, nVertices[3]);
+    
+	
+	modelMatrix = missiles[0]->getModelMatrix();
+	modelViewMatrix = viewMatrix * modelMatrix;
+	
+	glUniformMatrix4fv(modelview, 1, GL_FALSE, glm::value_ptr(modelViewMatrix));
+    glUniformMatrix4fv(project, 1, GL_FALSE, glm::value_ptr(projectionMatrix));
+	glBindVertexArray(VAO[2]);
+    glEnableVertexAttribArray( vPosition[2] );
+    glEnableVertexAttribArray( vColor[2] );
+    glEnableVertexAttribArray( vNormal[2] );
+	glDrawArrays(GL_TRIANGLES, 0, nVertices[2]);
+	
     glutSwapBuffers();
 }
     
@@ -261,7 +299,7 @@ void animate(int i) {
 	glm::vec3 direction = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 pull = glm::vec3(0.0f, 0.0f, 0.0f);
 	glm::vec3 rPosition = glm::vec3(warbird->getModelMatrix()[3]);
-	showMat4("warbird", warbird->getModelMatrix());
+	//showMat4("warbird", warbird->getModelMatrix());
 	float rDistance = glm::dot(rPosition, rPosition);
 	float gConstant = GRAVITY / rDistance;
 	
@@ -317,7 +355,7 @@ void animate(int i) {
 	showVec3("direction", direction);
 	warbird->move(direction);
 	warbird->move2(pull);
-	warbird->showOrbit();
+	//warbird->showOrbit();
     //The update applies to both warbird and warcam
     warbird->update();
 	
@@ -326,6 +364,8 @@ void animate(int i) {
     warCam->setOrbitAngle(0);
     warMod = none;
     
+	missiles[0]->update();
+	launcher[0]->update();
     //??? what is this???
     if(currentCam == -1)
         viewMatrix = frontCamMat;
