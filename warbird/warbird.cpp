@@ -63,13 +63,20 @@ glm::mat4 projectionMatrix;
 
 glm::mat4 frontCamMat = glm::lookAt(DEFAULT_CAMERA_EYE, DEFAULT_CAMERA_AT, DEFAULT_CAMERA_UP);
 
-char titleString[256];
-char baseTitle[] = "465 Warbird Project : ";
-char subTitleWarbird[] = "Warbird ";
-char subTitleUnum[] = "Unum ";
-char subTitleDuo[] = "Duo ";
-char subTitleRate[] = "U/S ";
-char subTitleView[] = "View: ";
+char titleString[256] = "465 Project";
+char aboveUnum[] = "above Unum";
+char aboveDuo[] = "above Duo";
+char warbirdView[] = "warbird";
+char topView[] = "top";
+char frontView[] = "front";
+char fpsStr[10] = "";
+int timeq = 40;
+int frames = 0;
+int timerCalls = 0;
+int Wmissiles = 0;
+int Umissiles = 0;
+int Dmissiles = 0;
+char *view;
 
 enum movement {none, forward, backward, left, right, up, down, rollR, rollL};
 movement warMod = none;
@@ -77,7 +84,9 @@ movement warMod = none;
 
 void display();
 void reshape(int width, int height);
-void animate(int i);
+void timer(int i);
+void updateTitle();
+void animate();
 void keyboard(unsigned char key, int x, int y);
 void keyboardSpec(int key, int x, int y);
 bool farEnough(glm::vec3 rPos, float margin);
@@ -111,7 +120,7 @@ int main(int argc, char * argv[]) {
     glutReshapeFunc(reshape);
 	glutKeyboardFunc(keyboard);
     glutSpecialFunc(keyboardSpec);
-    glutTimerFunc(40, animate, 1);
+    glutTimerFunc(timeq, timer, 1);
     glutMainLoop();
     
     delete Ruber;
@@ -222,6 +231,8 @@ void init() {
     
     viewMatrix = frontCamMat;
     
+	view = frontView;
+	
     glEnable(GL_DEPTH_TEST);
     glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
 }
@@ -279,6 +290,7 @@ void display() {
 	glDrawArrays(GL_TRIANGLES, 0, nVertices[2]);
 	
     glutSwapBuffers();
+	frames++;
 }
     
 void reshape(int width, int height) {
@@ -287,11 +299,29 @@ void reshape(int width, int height) {
         (GLfloat) height, 1.0f, 100000.0f);
 }
     
-void animate(int i) {
+void timer(int i) {
+	glutTimerFunc(timeq, timer, 1);
+	timerCalls++;
+	if(timerCalls * timeq >= 1000) {
+		sprintf(fpsStr, "U/S %2d   ", frames);
+		
+		timerCalls = frames = 0;
+		updateTitle();
+		}
+	animate();
+	}
+	
+void updateTitle() {
+	sprintf(titleString, "465 Warbird Project:  Warbird %2d   Unum %1d"
+			"   Duo %1d   %sView: %s", Wmissiles, Umissiles,
+			Dmissiles, fpsStr, view);
+	glutSetWindowTitle(titleString);
+	}
+
+void animate() {
 //TODO:
 //fix the gravity/rotation problem
 //fix the warp/rotation problem
-    glutTimerFunc(40, animate, 1);
 	
     bodies[0]->update(); //This updates the planets
 	
@@ -380,12 +410,16 @@ void keyboard(unsigned char key, int x, int y) {
     switch (key) {
     case 'v': case 'V':
             currentCam = (currentCam == -1) ? 0 : ((currentCam == 0) ? 1 : -1);
-
+			view = (currentCam == 0) ? topView :
+				((currentCam == 1) ? warbirdView : frontView);
+			updateTitle();
             printf("camera changed.\n");
             break;
             
     case 'p': case 'P':
             currentCam = ( currentCam == 2 ) ? 3 : 2;
+			view = (currentCam == 2) ? aboveUnum : aboveDuo;
+			updateTitle();
             printf("camera changed.\n");
             break;
 			
