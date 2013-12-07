@@ -15,9 +15,9 @@ class Object3D {
     void update();
     unsigned getSatellites();
     glm::mat4 getModelMatrix();
-	glm::mat4 getRotateMatrix();
+    glm::mat4 getRotateMatrix();
     glm::mat4 getView();
-	glm::vec3 getPos();
+    glm::vec3 getPos();
     void setOrbit(glm::vec3 orbit, float angle);
     void setOrbitPos(glm::vec3 pos);
     void setOrbitAngle(float angle);
@@ -26,15 +26,15 @@ class Object3D {
     void setCameraOffset(glm::vec3 offset);
     void setTranslation(glm::vec3 pos);
     void setCamera(bool cam);
-	void reset(glm::mat4 mod);
+    void reset(glm::mat4 mod);
     void makeSatellites(unsigned number);
     void move(glm::vec3 amount);
-	void move2(glm::vec3 amount);
+    void move2(glm::vec3 amount);
     void yaw(float radians);
     void pitch(float radians);
     void roll(float radians);
-	void showOrbit() {
-		showVec3("OrbitPos",orbitPos); }
+    void showOrbit() {
+        showVec3("OrbitPos",orbitPos); }
     Object3D * getSatellite(unsigned number);
     ~Object3D();
 
@@ -71,7 +71,7 @@ Object3D::Object3D() : satellites(0), visible(false), satellites_p(NULL),
     rotateAxis = orbitAxis = glm::vec3(0.0f, 1.0f, 0.0f);
     cameraOffset = orbitPos = satPos = glm::vec3(0.0f);
     rotateMat = orbitMat = scaleMat = translationMat = glm::mat4(1.0f);
-	eye = glm::vec3(0.0f, 0.0f, 0.0f);
+    eye = glm::vec3(0.0f, 0.0f, 0.0f);
     at = glm::vec3(0.0f, 0.0f, -1.0f);
     up = glm::vec3(0.0f, 1.0f, 0.0f);
     }
@@ -123,12 +123,12 @@ glm::mat4 Object3D::getModelMatrix() {
     }
 
 glm::mat4 Object3D::getRotateMatrix() {
-		return rotateMat;
-	}
-	
+        return rotateMat;
+    }
+
 glm::vec3 Object3D::getPos() {
-	return glm::vec3(modelMat[3]);
-	}
+    return glm::vec3(modelMat[3]);
+    }
 
 glm::mat4 Object3D::getView() {
     return viewMat;
@@ -136,7 +136,7 @@ glm::mat4 Object3D::getView() {
 
 void Object3D::makeModelMat() {
     orbitMat = glm::rotate(orbitMat, orbitAngle, rotateAxis);
-    
+
     baseTranslate = glm::translate(glm::mat4(1.0f), distance);
     translationMat = glm::translate(glm::mat4(1.0f), orbitPos);
     modelMat = translationMat * orbitMat * baseTranslate * rotateMat * scaleMat;
@@ -144,7 +144,7 @@ void Object3D::makeModelMat() {
     satPos = eye = glm::vec3(modelMat[3]);
     at = glm::vec3(modelMat[2]) + orbitPos + cameraOffset;
     up = glm::vec3(modelMat[1]);
-        
+
     viewMat = glm::lookAt(eye, at, up);
     }
 
@@ -164,7 +164,7 @@ void Object3D::setOrbitAngle(float angle) {
 void Object3D::setOrbitAxis(glm::vec3 axis) {
     rotateAxis = axis;
     }
-    
+
 void Object3D::setScale(glm::vec3 scale) {
     scaleMat = glm::scale(glm::mat4(1.0f), scale);
     }
@@ -177,26 +177,26 @@ void Object3D::setTranslation(glm::vec3 pos) {
     orbitAxis = glm::vec3(0.0f);
     satPos = distance = pos;
     }
-    
+
 void Object3D::reset(glm::mat4 mod) {
-	rotateAngle = 0;
-	orbitAngle = 0;
+    rotateAngle = 0;
+    orbitAngle = 0;
     orbitPos = glm::vec3(0.0f);
-	rotateAxis = orbitAxis = glm::vec3(0.0f, 1.0f, 0.0f);
+    rotateAxis = orbitAxis = glm::vec3(0.0f, 1.0f, 0.0f);
     rotateMat = glm::mat4(glm::mat3(mod));
-	orbitMat = glm::mat4(1.0f);
-	if(visible)
-		setTranslation(glm::vec3(mod[3]));
-	}
-	
+    orbitMat = glm::mat4(1.0f);
+    if(visible)
+        setTranslation(glm::vec3(mod[3]));
+    }
+
 void Object3D::move(glm::vec3 amount) {
     rotateMat = glm::translate(rotateMat, amount);
     }
-	
+
 void Object3D::move2(glm::vec3 amount) {
-	orbitPos += amount;
-	}
-    
+    orbitPos += amount;
+    }
+
 void Object3D::yaw(float radians) {
     rotateMat = glm::rotate(rotateMat, radians, glm::vec3(0.0f, 1.0f, 0.0f));
     }
@@ -234,38 +234,3 @@ void Object3D::makeSatellites(unsigned number) {
 Object3D * Object3D::getSatellite(unsigned number) {
     return satellites_p[number];
     }
-
-/*
-class List_node {
-  public:
-    List_node();
-    ~List_node();
-    List_node * add();
-    List_node * nextItem();
-
-  private:
-    void * current;
-    List_node * next;
-    };
-
-List_node::List_node() : current(NULL), next(NULL) {}
-
-List_node::~List_node() {
-    if (current != NULL)
-        delete current;
-    printf("List node deleted.\n");
-    }
-
-List_node * List_node::add() {
-    if (next == NULL) {
-        next = new List_node;
-        return next;
-        }
-    else
-        printf("Tried to add to middle of list!\n");
-    return NULL;
-    }
-
-List_node * List_node::nextItem() {
-    return next;
-    }*/
