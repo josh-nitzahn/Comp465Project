@@ -22,9 +22,22 @@ warbird.cpp
 # define BODIES 5
 # define GRAVITY 90000000
 
+# define LAUNCHER_RADIUS 30.0f
+# define WARBIRD_RADIUS 100.0f
+# define MISSILE_RADIUS 50.0f
+# define RUBER_RADIUS 2000.0f
+# define UNUM_RADIUS 200.0f
+# define DUO_RADIUS 400.0f
+# define PRIMUS_RADIUS 100.0f
+# define SEC_RADIUS 150.0f
+# define MISSILE_OFFSET 50.0f
+# define DETECT_RADIUS 3000.0f
+
+
 const int nModels = 4;
 int currentCam = -1; //front view
 bool gravityFlag = true;
+bool gameOver = false;
 int warp = 2;
 Object3D * bodies[BODIES] = {NULL};
 Object3D * uMissile = NULL;
@@ -73,16 +86,24 @@ char warbirdView[] = "warbird";
 char topView[] = "top";
 char frontView[] = "front";
 char fpsStr[10] = "";
-int timeq = 40;
+int rate = 40;
+int rates[] = {40, 100, 250, 500};
+int timeq = rate;
 int frames = 0;
 int timerCalls = 0;
 int Wmissiles = 0;
 int Umissiles = 0;
 int Dmissiles = 0;
+int wLife = 0;
+int uLife = 0;
+int dLife = 0;
 char *view;
 
 enum movement {none, forward, backward, left, right, up, down, rollR, rollL};
 enum mState {notFired, launched, tracking, dead};
+
+bool unumBase = true;
+bool duoBase = true;
 
 movement warMod = none;
 mState unumState = notFired;
@@ -97,8 +118,8 @@ void updateTitle();
 void animate();
 void keyboard(unsigned char key, int x, int y);
 void keyboardSpec(int key, int x, int y);
-bool farEnough(glm::vec3 rPos, float margin);
-void warpCode();
+void track(Object3D * target, Object3D * missile);
+bool proximityCheck(Object3D * obj1, Object3D * obj2, float margin);
 
 void init();
 
@@ -158,7 +179,7 @@ void init() {
     Ruber = new Object3D(PLANETS + 1);    //one camera satellite
     Ruber->setOrbit(glm::vec3(0.0f, 0.0f, 0.0f), 0);
     //Ruber->setRotate(glm::vec3(0.0f, 1.0f, 0.0f), 0);
-    Ruber->setScale(glm::vec3(2000.0f / modelBoundingRadius[0]));
+    Ruber->setScale(glm::vec3(RUBER_RADIUS / modelBoundingRadius[0]));
     Ruber->setCamera(false);
 
     topCam = Ruber->getSatellite(0);
@@ -168,20 +189,20 @@ void init() {
 
     Unum = Ruber->getSatellite(1);
     Unum->setTranslation(glm::vec3(4000.0f, 0.0f, 0.0f));
-    Unum->setScale(glm::vec3(200.0f / modelBoundingRadius[0]));
+    Unum->setScale(glm::vec3(UNUM_RADIUS / modelBoundingRadius[0]));
     Unum->setOrbitAngle(0.004f);
     Unum->setCamera(false);
 
     Duo = Ruber->getSatellite(2);
     Duo->setTranslation(glm::vec3(-9000.0f, 0.0f, 0.0f));
-    Duo->setScale(glm::vec3(400.0f / modelBoundingRadius[0]));
+    Duo->setScale(glm::vec3(DUO_RADIUS / modelBoundingRadius[0]));
     Duo->setOrbitAngle(0.002f);
     Duo->setCamera(false);
 
     Unum->makeSatellites(MOONS1 + 2);
     uLauncher = Unum->getSatellite(1);
     uLauncher->setTranslation(glm::vec3(0.0f, 215.0f, 0.0f));
-    uLauncher->setScale(glm::vec3(30.0f / modelBoundingRadius[3]));
+    uLauncher->setScale(glm::vec3(LAUNCHER_RADIUS / modelBoundingRadius[3]));
     uLauncher->setCamera(false);
 
     UnumCam = Unum->getSatellite(0);
@@ -192,7 +213,7 @@ void init() {
     Duo->makeSatellites(MOONS2 + 2);
     dLauncher = Duo->getSatellite(3);
     dLauncher->setTranslation(glm::vec3(0.0f, 415.0f, 0.0f));
-    dLauncher->setScale(glm::vec3(30.0f / modelBoundingRadius[3]));
+    dLauncher->setScale(glm::vec3(LAUNCHER_RADIUS / modelBoundingRadius[3]));
     dLauncher->setCamera(false);
 
     DuoCam = Duo->getSatellite(0);
@@ -202,19 +223,19 @@ void init() {
 
     Primus = Duo->getSatellite(1);
     Primus->setTranslation(glm::vec3(-900.0f, 0.0f, 0.0f));
-    Primus->setScale(glm::vec3(100 / modelBoundingRadius[0]));
+    Primus->setScale(glm::vec3(SEC_RADIUS / modelBoundingRadius[0]));
     Primus->setOrbitAngle(0.004f);
     Primus->setCamera(false);
 
     Secundus = Duo->getSatellite(2);
     Secundus->setTranslation(glm::vec3(-1750.0f, 0.0f, 0.0f));
-    Secundus->setScale(glm::vec3(150 / modelBoundingRadius[0]));
+    Secundus->setScale(glm::vec3(SEC_RADIUS / modelBoundingRadius[0]));
     Secundus->setOrbitAngle(0.002f);
     Secundus->setCamera(false);
 
     warbird = new Object3D(1);
     warbird->setTranslation(glm::vec3(5000.0f, 1000.0f, 5000.0f));
-    warbird->setScale(glm::vec3(100.0f / modelBoundingRadius[1]));
+    warbird->setScale(glm::vec3(WARBIRD_RADIUS / modelBoundingRadius[1]));
     warbird->setCamera(false);
 
     warCam = warbird->getSatellite(0);
@@ -235,15 +256,15 @@ void init() {
 
 
     uMissile = new Object3D;
-    uMissile->setScale(glm::vec3(50.0f / modelBoundingRadius[2]));
+    uMissile->setScale(glm::vec3(MISSILE_RADIUS / modelBoundingRadius[2]));
     uMissile->setCamera(false);
 
     dMissile = new Object3D;
-    dMissile->setScale(glm::vec3(50.0f / modelBoundingRadius[2]));
+    dMissile->setScale(glm::vec3(MISSILE_RADIUS / modelBoundingRadius[2]));
     dMissile->setCamera(false);
 
     wMissile = new Object3D;
-    wMissile->setScale(glm::vec3(50.0f / modelBoundingRadius[2]));
+    wMissile->setScale(glm::vec3(MISSILE_RADIUS / modelBoundingRadius[2]));
     wMissile->setCamera(false);
 
 
@@ -373,10 +394,6 @@ void updateTitle() {
     }
 
 void animate() {
-//TODO:
-//fix the gravity/rotation problem
-//fix the warp/rotation problem
-
     bodies[0]->update(); //This updates the planets
 
     //Default direction/pull values
@@ -387,14 +404,14 @@ void animate() {
     float rDistance = glm::dot(rPosition, rPosition);
     float gConstant = GRAVITY / rDistance;
 
-    printf("gravity?: %d, ", gravityFlag); //debug
-    printf("rDistance: %8.3f, ", rDistance); //debug
-    printf("gConstant: %8.3f\n", gConstant); //debug
+    //printf("gravity?: %d, ", gravityFlag); //debug
+    //printf("rDistance: %8.3f, ", rDistance); //debug
+    //printf("gConstant: %8.3f\n", gConstant); //debug
 
-    if (gravityFlag && rDistance >= 4000000) //The lowest value rDistance can be is 1, but when it is, some funky things happen...
-    {
+    //The lowest value rDistance can be is 1, but when it is, some funky things happen...
+
+    if(gravityFlag && rDistance >= 4000000)
         pull = glm::normalize(rPosition) * -1.0f * gConstant;
-    }
 
     //The rotation needs to be fixed
     switch(warMod) {
@@ -434,30 +451,183 @@ void animate() {
         break;
     }
     //Move the warbird based on direction and pull
-    printf("position: %8.3f %8.3f %8.3f, ", rPosition[0], rPosition[1], rPosition[2]); //debug
-    printf("pull: %8.3f %8.3f %8.3f\n", pull[0], pull[1], pull[2]); //debug
-    showVec3("direction", direction);
+    //printf("position: %8.3f %8.3f %8.3f, ", rPosition[0], rPosition[1], rPosition[2]); //debug
+    //printf("pull: %8.3f %8.3f %8.3f\n", pull[0], pull[1], pull[2]); //debug
+    //showVec3("direction", direction);
+    //printf("unumState: %u\n", unumState);
     warbird->move(direction);
     warbird->move2(pull);
     //warbird->showOrbit();
     //The update applies to both warbird and warcam
+
     warbird->update();
 
-    //Reset the camera and warmod after the update
-    warCam->setOrbitAxis(glm::vec3(0.0f, 1.0f, 0.0f));
-    warCam->setOrbitAngle(0);
-    warMod = none;
-
+    //showVec3("missile position", uMissile->getPos());
+    //showMat4("missile RM", uMissile->getRotateMatrix());
     uMissile->update();
     dMissile->update();
     wMissile->update();
     uLauncher->update();
     dLauncher->update();
 
+    //Reset the camera and warmod after the update
+    warCam->setOrbitAxis(glm::vec3(0.0f, 1.0f, 0.0f));
+    warCam->setOrbitAngle(0);
+    warMod = none;
+
+    if(unumState == tracking) {
+        float rotAmount = 0;
+        uLife++;
+        track(warbird, uMissile);
+        uMissile->move(glm::vec3(0.0f, 0.0f, 5.0f));
+    }
+    if(unumState == launched) {
+        uLife++;
+        if(uLife >= 50)
+            unumState = tracking;
+        uMissile->move(glm::vec3(0.0f, 0.0f, 5.0f));
+    }
+
+    if(proximityCheck(warbird, uLauncher, DETECT_RADIUS)) {
+        if(Umissiles < 5 && unumState == notFired && unumBase == true) {
+            unumState = launched;
+            Umissiles++;
+            uLife = 0;
+            glm::mat4 mod = uLauncher->getRotateMatrix();
+            mod = glm::translate(mod, uLauncher->getPos()
+                + glm::vec3(0.0f, 0.0f, LAUNCHER_RADIUS + MISSILE_RADIUS + 10));
+            uMissile->reset(mod);
+            uMissile->pitch(-PI/2);
+            uMissile->move(glm::vec3(0.0f, 0.0f, 5.0f));
+        }
+    }
+
+    if(duoState == tracking) {
+        float rotAmount = 0;
+        dLife++;
+        track(warbird, dMissile);
+        dMissile->move(glm::vec3(0.0f, 0.0f, 5.0f));
+    }
+    if(duoState == launched) {
+        dLife++;
+        if(dLife >= 50)
+            duoState = tracking;
+        dMissile->move(glm::vec3(0.0f, 0.0f, 5.0f));
+    }
+
+    if(proximityCheck(warbird, dLauncher, DETECT_RADIUS)) {
+        if(Dmissiles < 5 && duoState == notFired && duoBase == true) {
+            duoState = launched;
+            Dmissiles++;
+            dLife = 0;
+            glm::mat4 mod = dLauncher->getRotateMatrix();
+            mod = glm::translate(mod, dLauncher->getPos()
+                + glm::vec3(0.0f, 0.0f, LAUNCHER_RADIUS + MISSILE_RADIUS + 10));
+            dMissile->reset(mod);
+            dMissile->pitch(-PI/2);
+            dMissile->move(glm::vec3(0.0f, 0.0f, 5.0f));
+        }
+    }
+
+
+    if(wState == tracking) {
+        if(unumBase == true && proximityCheck(wMissile, uLauncher, LAUNCHER_RADIUS
+                + MISSILE_RADIUS + DETECT_RADIUS))
+            track(uLauncher, wMissile);
+        else if(duoBase == true && proximityCheck(wMissile, dLauncher, LAUNCHER_RADIUS
+                + MISSILE_RADIUS + DETECT_RADIUS))
+            track(dLauncher, wMissile);
+        wLife++;
+        wMissile->move(glm::vec3(0.0f, 0.0f, 5.0f));
+    }
+    if(wState == launched) {
+        wLife++;
+        if(wLife >= 50)
+            wState = tracking;
+        wMissile->move(glm::vec3(0.0f, 0.0f, 5.0f));
+    }
+
+    printf("wState: %i\n", wState);
+    showVec3("wmissile", wMissile->getPos());
+
     if(currentCam == -1)
         viewMatrix = frontCamMat;
     else
         viewMatrix = cameras[currentCam]->getView();
+
+    if(proximityCheck(warbird, Ruber, RUBER_RADIUS + WARBIRD_RADIUS))
+        gameOver = true;
+    if(proximityCheck(warbird, Unum, UNUM_RADIUS + WARBIRD_RADIUS))
+        gameOver = true;
+    if(proximityCheck(warbird, Duo, DUO_RADIUS + WARBIRD_RADIUS))
+        gameOver = true;
+    if(proximityCheck(warbird, Secundus, SEC_RADIUS + WARBIRD_RADIUS))
+        gameOver = true;
+    if(proximityCheck(warbird, Primus, PRIMUS_RADIUS + WARBIRD_RADIUS))
+        gameOver = true;
+    //printf("checking missile ");
+    //printf("missile distance: %f\n", glm::distance(warbird->getPos(), uMissile->getPos()));
+    if(proximityCheck(warbird, uMissile, MISSILE_RADIUS + WARBIRD_RADIUS
+        + MISSILE_OFFSET)) {
+            gameOver = true;
+            printf("Unum's missile %i hit the ship.\n", Umissiles);
+            unumState = dead;
+    }
+    if(proximityCheck(warbird, dMissile, MISSILE_RADIUS + WARBIRD_RADIUS
+        + MISSILE_OFFSET)) {
+            gameOver = true;
+            printf("Duo's missile %i hit the ship.\n", Dmissiles);
+            duoState = dead;
+    }/*
+    if(proximityCheck(warbird, wMissile, MISSILE_RADIUS + WARBIRD_RADIUS
+        + MISSILE_OFFSET)) {
+            gameOver = true;
+            printf("Ship's missile %i hit the ship.\n", Wmissiles);
+            wState = dead;
+    }*/
+    if(proximityCheck(warbird, uLauncher, LAUNCHER_RADIUS + WARBIRD_RADIUS))
+        gameOver = true;
+    if(proximityCheck(warbird, dLauncher, LAUNCHER_RADIUS + WARBIRD_RADIUS))
+        gameOver = true;
+
+    if(proximityCheck(wMissile, uLauncher, LAUNCHER_RADIUS + MISSILE_RADIUS
+            + MISSILE_OFFSET)) {
+        printf("Ship's missile %i hit Unum's launcher.\n", Wmissiles);
+        unumBase = false;
+    }
+    if(proximityCheck(wMissile, dLauncher, LAUNCHER_RADIUS + MISSILE_RADIUS
+            + MISSILE_OFFSET)) {
+        printf("Ship's missile %i hit Duo's launcher.\n", Wmissiles);
+        duoBase = false;
+    }
+
+    if(uLife > 1000) {
+        uLife = 0;
+        unumState = notFired;
+        printf("Unum's missile detonated and hit nothing.\n");
+    }
+
+    if(dLife > 2000) {
+        dLife = 0;
+        duoState = notFired;
+        printf("Duo's missile detonated and hit nothing.\n");
+    }
+
+    if(wLife > 2000) {
+        wLife = 0;
+        wState = notFired;
+        printf("Ship's missile detonated and hit nothing.\n");
+    }
+
+    if(unumBase == false && duoBase == false) {
+        printf("YOU WIN");
+        gameOver = true;
+    }
+
+    if(gameOver) {
+        printf("GAME OVER\n");
+        exit(EXIT_SUCCESS);
+    }
 
     //The last line - redisplay the image
     glutPostRedisplay();
@@ -465,27 +635,48 @@ void animate() {
 
 void keyboard(unsigned char key, int x, int y) {
     switch (key) {
-    case 'v': case 'V':
+    case 'q': case 'Q': {
+            exit(EXIT_SUCCESS);
+            }
+    case 'f': case 'F': if(!gameOver) {
+            if((wState == notFired || wState == dead) && Wmissiles < 10) {
+                wState = launched;
+                glm::mat4 m = glm::mat4(glm::mat3(warbird->getRotateMatrix()));
+                m = glm::translate(m, (warbird->getPos() + glm::vec3(0.0f, 0.0f,
+                    WARBIRD_RADIUS + MISSILE_RADIUS + 20)));
+                wMissile->reset(m);
+                wLife = 0;
+                Wmissiles++;
+                printf("fired missile\n");
+                }
+            break;
+            }
+    case 'v': case 'V': {
             currentCam = (currentCam == -1) ? 0 : ((currentCam == 0) ? 1 : -1);
             view = (currentCam == 0) ? topView :
                 ((currentCam == 1) ? warbirdView : frontView);
             updateTitle();
             printf("camera changed.\n");
+            }
             break;
 
-    case 'p': case 'P':
+    case 'p': case 'P': {
             currentCam = ( currentCam == 2 ) ? 3 : 2;
             view = (currentCam == 2) ? aboveUnum : aboveDuo;
             updateTitle();
             printf("camera changed.\n");
+            }
             break;
 
-    case 'g' : case 'G':
-            gravityFlag = !gravityFlag;
-            printf("gravity has been toggled to %d.\n", gravityFlag);
+    case 'g' : case 'G': {
+            if(!gameOver) {
+                gravityFlag = !gravityFlag;
+                printf("gravity has been toggled to %d.\n", gravityFlag);
+                }
+            }
             break;
 
-    case 'w': case 'W':
+    case 'w': case 'W': if(!gameOver) {
             glm::mat4 mod = cameras[warp]->getRotateMatrix();
             mod = glm::translate(mod, cameras[warp]->getPos());
             showVec4("warp position", mod[3]);
@@ -496,11 +687,19 @@ void keyboard(unsigned char key, int x, int y) {
             warCam->setOrbitAngle(PI/2);
             printf("warped to planet %d.\n", warp);
             warp = (warp == 2) ? 3 : 2;
+            }
             break;
+
+    case 't': case 'T': if(!gameOver) {
+            timeq = rates[rate = ++rate % 4];
+            break;
+        }
     }
 }
 
 void keyboardSpec(int key, int x, int y) {
+    if(gameOver)
+        return;
     switch (key) {
     case GLUT_KEY_UP:
         if(glutGetModifiers() && GLUT_ACTIVE_CTRL)
@@ -530,4 +729,47 @@ void keyboardSpec(int key, int x, int y) {
             warMod = right;
         break;
     }
+}
+
+bool proximityCheck(Object3D * obj1, Object3D * obj2, float margin)
+{
+    glm::vec3 pos1 = obj1->getPos();
+    glm::vec3 pos2 = obj2->getPos();
+
+    return ( glm::distance(pos1, pos2) <= margin );
+}
+
+void track(Object3D * target, Object3D * missile)
+{
+
+    if(proximityCheck(missile, target, DETECT_RADIUS)) {
+        float rotAmount = 0.0f;
+        glm::vec3 targetVec = target->getPos() - missile->getPos();
+        glm::vec4 at2 = missile->getModelMatrix()[2];
+        glm::vec3 at = glm::vec3(at2);
+        //printf("colinear test\n");
+        if(!colinear(targetVec, at, 0.1f)){
+                targetVec = glm::normalize(targetVec);
+                at = glm::normalize(at);
+                glm::vec3 axis = glm::cross(targetVec, at);
+            float direction = axis.x + axis.y + axis.z;
+            //printf("missile direction: %f\n", direction);
+            showVec3("targetVec", targetVec);
+            showVec3("at", at);
+            rotAmount = glm::acos(glm::dot(targetVec, at));
+            //printf("rotating missile by %f\n", rotAmount);
+            if(direction > 0)
+                rotAmount = -rotAmount;
+            else
+                rotAmount = 2*PI - rotAmount;
+            if(rotAmount > 0.1f)
+                rotAmount = 0.1f;
+            if(rotAmount < -0.1f)
+                rotAmount = -0.1f;
+            printf("rotating missile by %f\n", rotAmount);
+            showVec3("missile axis", axis);
+            //showMat4("Before orient", uMissile->getRotateMatrix());
+            missile->orient(axis, rotAmount);
+            }
+        }
 }
