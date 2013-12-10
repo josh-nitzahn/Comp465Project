@@ -100,7 +100,7 @@ int dLife = 0;
 char *view;
 
 enum movement {none, forward, backward, left, right, up, down, rollR, rollL};
-enum mState {notFired, launched, tracking, dead};
+enum mState {notFired, launched, tracking};
 
 bool unumBase = true;
 bool duoBase = true;
@@ -118,7 +118,7 @@ void updateTitle();
 void animate();
 void keyboard(unsigned char key, int x, int y);
 void keyboardSpec(int key, int x, int y);
-void track(Object3D * target, Object3D * missile);
+void track(Object3D * target1, Object3D * target2, Object3D * missile);
 bool proximityCheck(Object3D * obj1, Object3D * obj2, float margin);
 
 void init();
@@ -129,7 +129,7 @@ int main(int argc, char * argv[]) {
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
     glutInitWindowSize(800, 600);
     //glutInitContextVersion(3, 0);
-    glutInitContextVersion(3, 0);
+    glutInitContextVersion(3, 3);
     glutInitContextProfile(GLUT_CORE_PROFILE);
     glutCreateWindow("465 Warbird Project");
 
@@ -467,8 +467,6 @@ void animate() {
     uMissile->update();
     dMissile->update();
     wMissile->update();
-    uLauncher->update();
-    dLauncher->update();
 
     //Reset the camera and warmod after the update
     warCam->setOrbitAxis(glm::vec3(0.0f, 1.0f, 0.0f));
@@ -476,20 +474,18 @@ void animate() {
     warMod = none;
 
     if(unumState == tracking) {
-        float rotAmount = 0;
         uLife++;
-        track(warbird, uMissile);
+        track(warbird, NULL, uMissile);
         uMissile->move(glm::vec3(0.0f, 0.0f, 5.0f));
     }
-    if(unumState == launched) {
+    else if(unumState == launched) {
         uLife++;
         if(uLife >= 50)
             unumState = tracking;
         uMissile->move(glm::vec3(0.0f, 0.0f, 5.0f));
     }
-
-    if(proximityCheck(warbird, uLauncher, DETECT_RADIUS)) {
-        if(Umissiles < 5 && unumState == notFired && unumBase == true) {
+    else if(proximityCheck(warbird, uLauncher, DETECT_RADIUS)) {
+        if(Umissiles < 5 && unumBase == true) {
             unumState = launched;
             Umissiles++;
             uLife = 0;
@@ -503,20 +499,18 @@ void animate() {
     }
 
     if(duoState == tracking) {
-        float rotAmount = 0;
         dLife++;
-        track(warbird, dMissile);
+        track(warbird, NULL, dMissile);
         dMissile->move(glm::vec3(0.0f, 0.0f, 5.0f));
     }
-    if(duoState == launched) {
+    else if(duoState == launched) {
         dLife++;
         if(dLife >= 50)
             duoState = tracking;
         dMissile->move(glm::vec3(0.0f, 0.0f, 5.0f));
     }
-
-    if(proximityCheck(warbird, dLauncher, DETECT_RADIUS)) {
-        if(Dmissiles < 5 && duoState == notFired && duoBase == true) {
+    else if(proximityCheck(warbird, dLauncher, DETECT_RADIUS)) {
+        if(Dmissiles < 5 && duoBase == true) {
             duoState = launched;
             Dmissiles++;
             dLife = 0;
@@ -531,16 +525,17 @@ void animate() {
 
 
     if(wState == tracking) {
-        if(unumBase == true && proximityCheck(wMissile, uLauncher, LAUNCHER_RADIUS
+        /*if(unumBase == true && proximityCheck(wMissile, uLauncher, LAUNCHER_RADIUS
                 + MISSILE_RADIUS + DETECT_RADIUS))
             track(uLauncher, wMissile);
         else if(duoBase == true && proximityCheck(wMissile, dLauncher, LAUNCHER_RADIUS
                 + MISSILE_RADIUS + DETECT_RADIUS))
-            track(dLauncher, wMissile);
+            track(dLauncher, wMissile);*/
+        track(uLauncher, dLauncher, wMissile);
         wLife++;
         wMissile->move(glm::vec3(0.0f, 0.0f, 5.0f));
     }
-    if(wState == launched) {
+    else if(wState == launched) {
         wLife++;
         if(wLife >= 50)
             wState = tracking;
@@ -571,19 +566,19 @@ void animate() {
         + MISSILE_OFFSET)) {
             gameOver = true;
             printf("Unum's missile %i hit the ship.\n", Umissiles);
-            unumState = dead;
+            unumState = notFired;
     }
     if(proximityCheck(warbird, dMissile, MISSILE_RADIUS + WARBIRD_RADIUS
         + MISSILE_OFFSET)) {
             gameOver = true;
             printf("Duo's missile %i hit the ship.\n", Dmissiles);
-            duoState = dead;
+            duoState = notFired;
     }/*
     if(proximityCheck(warbird, wMissile, MISSILE_RADIUS + WARBIRD_RADIUS
         + MISSILE_OFFSET)) {
             gameOver = true;
             printf("Ship's missile %i hit the ship.\n", Wmissiles);
-            wState = dead;
+            wState = notFired;
     }*/
     if(proximityCheck(warbird, uLauncher, LAUNCHER_RADIUS + WARBIRD_RADIUS))
         gameOver = true;
@@ -639,7 +634,7 @@ void keyboard(unsigned char key, int x, int y) {
             exit(EXIT_SUCCESS);
             }
     case 'f': case 'F': if(!gameOver) {
-            if((wState == notFired || wState == dead) && Wmissiles < 10) {
+            if(wState == notFired && Wmissiles < 10) {
                 wState = launched;
                 glm::mat4 m = glm::mat4(glm::mat3(warbird->getRotateMatrix()));
                 m = glm::translate(m, (warbird->getPos() + glm::vec3(0.0f, 0.0f,
@@ -647,7 +642,8 @@ void keyboard(unsigned char key, int x, int y) {
                 wMissile->reset(m);
                 wLife = 0;
                 Wmissiles++;
-                printf("fired missile\n");
+                wMissile->move(glm::vec3(0.0f, 0.0f, 5.0f));
+                printf("fired missile number %d\n", Wmissiles);
                 }
             break;
             }
@@ -739,37 +735,38 @@ bool proximityCheck(Object3D * obj1, Object3D * obj2, float margin)
     return ( glm::distance(pos1, pos2) <= margin );
 }
 
-void track(Object3D * target, Object3D * missile)
+void track(Object3D * target1, Object3D * target2, Object3D * missile)
 {
 
-    if(proximityCheck(missile, target, DETECT_RADIUS)) {
-        float rotAmount = 0.0f;
-        glm::vec3 targetVec = target->getPos() - missile->getPos();
+    if(proximityCheck(missile, target1, DETECT_RADIUS)) {
+        glm::vec3 targetVec = target1->getPos() - missile->getPos();
         glm::vec4 at2 = missile->getModelMatrix()[2];
         glm::vec3 at = glm::vec3(at2);
         //printf("colinear test\n");
         if(!colinear(targetVec, at, 0.1f)){
-                targetVec = glm::normalize(targetVec);
-                at = glm::normalize(at);
-                glm::vec3 axis = glm::cross(targetVec, at);
-            float direction = axis.x + axis.y + axis.z;
-            //printf("missile direction: %f\n", direction);
-            showVec3("targetVec", targetVec);
-            showVec3("at", at);
-            rotAmount = glm::acos(glm::dot(targetVec, at));
-            //printf("rotating missile by %f\n", rotAmount);
-            if(direction > 0)
-                rotAmount = -rotAmount;
-            else
-                rotAmount = 2*PI - rotAmount;
-            if(rotAmount > 0.1f)
-                rotAmount = 0.1f;
-            if(rotAmount < -0.1f)
-                rotAmount = -0.1f;
-            printf("rotating missile by %f\n", rotAmount);
+            targetVec = glm::normalize(targetVec);
+            at = glm::normalize(at);
+            glm::vec3 axis = glm::normalize(glm::cross(targetVec, at));
             showVec3("missile axis", axis);
             //showMat4("Before orient", uMissile->getRotateMatrix());
-            missile->orient(axis, rotAmount);
+            missile->orient(axis, targetVec);
+            showMat4("after orient", missile->getRotateMatrix());
             }
         }
+    else if (target2 != NULL && proximityCheck(missile, target2, DETECT_RADIUS))
+    {
+        glm::vec3 targetVec = target2->getPos() - missile->getPos();
+        glm::vec4 at2 = missile->getModelMatrix()[2];
+        glm::vec3 at = glm::vec3(at2);
+        //printf("colinear test\n");
+        if(!colinear(targetVec, at, 0.1f)){
+            targetVec = glm::normalize(targetVec);
+            at = glm::normalize(at);
+            glm::vec3 axis = glm::normalize(glm::cross(targetVec, at));
+            showVec3("missile axis", axis);
+            //showMat4("Before orient", uMissile->getRotateMatrix());
+            missile->orient(axis, targetVec);
+            showMat4("after orient", missile->getRotateMatrix());
+        }
+    }
 }

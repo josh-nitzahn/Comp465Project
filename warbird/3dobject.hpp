@@ -23,7 +23,7 @@ class Object3D {
     void setOrbitAngle(float angle);
     void setOrbitAxis(glm::vec3 axis);
     void setScale(glm::vec3 scale);
-    void orient(glm::vec3 axis, float amount);
+    void orient(glm::vec3 axis, glm::vec3 amount);
     void setCameraOffset(glm::vec3 offset);
     void setTranslation(glm::vec3 pos);
     void setCamera(bool cam);
@@ -179,8 +179,13 @@ void Object3D::setTranslation(glm::vec3 pos) {
     satPos = distance = pos;
     }
 
-void Object3D::orient(glm::vec3 axis, float amount) {
-    rotateMat = glm::rotate(rotateMat, amount, axis);
+void Object3D::orient(glm::vec3 right, glm::vec3 at) {
+    glm::vec3 up = glm::normalize(glm::cross(right, at));
+
+    rotateMat = glm::transpose( glm::mat4(right.x, up.x, at.x, rotateMat[3][0],
+                                          right.y, up.y, at.y, rotateMat[3][1],
+                                          right.z, up.z, at.z, rotateMat[3][2],
+                                          0,       0,    0,    1));
     }
 
 void Object3D::reset(glm::mat4 mod) {
