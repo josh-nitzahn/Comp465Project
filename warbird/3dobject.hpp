@@ -1,3 +1,8 @@
+//Chris Bowles
+//Josh Nitzahn
+//12/10/13
+//Comp 465 Project
+
 /*
 3dobject.hpp
 */

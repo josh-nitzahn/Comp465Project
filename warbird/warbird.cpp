@@ -1,3 +1,8 @@
+//Chris Bowles
+//Josh Nitzahn
+//12/10/13
+//Comp 465 Project
+
 /*
 warbird.cpp
 */
@@ -6,6 +11,7 @@ warbird.cpp
 
 # include "..\includes465\include465.h"
 # include "..\includes465\glmUtils465.hpp"
+# include "..\includes465\texture.hpp"  // freeTexture(...), loadRawTexture(...)
 # define __INCLUDES465__
 
 # include "3dobject.hpp"
@@ -110,6 +116,10 @@ mState unumState = notFired;
 mState duoState = notFired;
 mState wState = notFired;
 
+// Texture and Model resources
+int width = 1024, height = 1024;   // set texture's width and height values here
+char * fileName = "stars.raw";  // set the texture file's name here
+GLuint texture, Texture, showTexture;  // texture id and shader handle
 
 void display();
 void reshape(int width, int height);
@@ -120,7 +130,7 @@ void keyboard(unsigned char key, int x, int y);
 void keyboardSpec(int key, int x, int y);
 void track(Object3D * target1, Object3D * target2, Object3D * missile);
 bool proximityCheck(Object3D * obj1, Object3D * obj2, float margin);
-
+void cleanUp (void);
 void init();
 
 
@@ -150,14 +160,21 @@ int main(int argc, char * argv[]) {
     glutKeyboardFunc(keyboard);
     glutSpecialFunc(keyboardSpec);
     glutTimerFunc(timeq, timer, 1);
+	glutCloseFunc(cleanUp);  // freeglut only
     glutMainLoop();
 
     delete Ruber;
 
-
     printf("End of program.\n");
     return 0;
 }
+
+// free OpenGL resources
+void cleanUp (void) {
+  glDeleteBuffers(nModels, buffer);
+  freeTexture(texture);   // in includes465/texture.hpp
+  printf("cleaned up\n");
+  }
 
 void init() {
     shaderProgram = loadShaders(vertexShaderFile, fragmentShaderFile);
@@ -271,9 +288,21 @@ void init() {
     viewMatrix = frontCamMat;
 
     view = frontView;
+	
+	
+	// Uniforms
+	showTexture = glGetUniformLocation(shaderProgram, "IsTexture");
+  
+	// load texture
+	texture = loadRawTexture( texture, fileName, width, height);
+	if (texture != 0) {
+		printf("texture file, read, texture generated and bound.\n");
+		Texture = glGetUniformLocation(shaderProgram, "Texture"); }
+	else  // texture file loaded
+		printf("Texture in file %s NOT LOADED !!! \n");
 
     glEnable(GL_DEPTH_TEST);
-    glClearColor(0.0f, 0.0f, 1.0f, 1.0f);
+    glClearColor(0.0f, 1.0f, 1.0f, 1.0f);
 }
 
 void display() {

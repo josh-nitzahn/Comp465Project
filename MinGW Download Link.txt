@@ -1,0 +1,7 @@
+Unfortunately, we were not able to include the MinGW program folder necessary for command-line compilation in this upload, due to the 50 MB limit (minGW is 200+ MB)
+
+If you wish to run the program using MinGW, you may download the exact program files we used by downloading the zip file from this web address:
+
+http://www.mediafire.com/download/q8dr5s14mg9f8a2/MinGW.zip
+
+Make sure that the MinGW folder is in the same location as the 'includes465' and 'warbird' folders.
